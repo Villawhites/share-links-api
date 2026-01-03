@@ -77,7 +77,7 @@ async def create_item(
         thumbnail_url=metadata.get("thumbnail_url"),
         platform=metadata.get("platform"),
         created_by=current_user.id,
-        metadata=metadata
+        item_metadata=metadata 
     )
     
     db.add(new_item)

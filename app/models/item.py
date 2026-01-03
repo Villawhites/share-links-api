@@ -18,7 +18,7 @@ class Item(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime, nullable=True)  # soft delete
     version = Column(Integer, default=0)
-    metadata = Column(JSONB, nullable=True)  # metadata extra del link
+    item_metadata = Column(JSONB, nullable=True)  # ← Cambié de 'metadata' a 'item_metadata'
     
     def __repr__(self):
         return f"<Item {self.title}>"

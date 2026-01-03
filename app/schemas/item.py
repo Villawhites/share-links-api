@@ -25,7 +25,7 @@ class ItemResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
-    metadata: Optional[dict] = None
+    item_metadata: Optional[dict] = None  # ← Cambié de 'metadata' a 'item_metadata'
     
     class Config:
         from_attributes = True
