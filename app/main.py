@@ -1,24 +1,22 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.models import User, Connection, Collection, Item
 from app.routes import auth, connections, collections, items, sync
+from app.middleware.error_handler import register_exception_handlers
+import logging
 
-@asynccontextmanager
-async def lifespan(app):
-    # Startup: crear tablas
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    # Shutdown: cerrar conexiones
-    await engine.dispose()
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+# Crear tablas
+Base.metadata.create_all(bind=engine)
+
+# Inicializar app
 app = FastAPI(
     title="Share Links API",
-    description="API para compartir y sincronizar enlaces",
-    version="1.0.0",
-    lifespan=lifespan
+    description="API para compartir enlaces",
+    version="1.0.0"
 )
 
 # CORS
@@ -30,25 +28,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Registrar manejadores de excepciones
+register_exception_handlers(app)
+
 # Rutas
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(connections.router, prefix="/api/connections", tags=["connections"])
-app.include_router(collections.router, prefix="/api/collections", tags=["collections"])
-app.include_router(items.router, prefix="/api/items", tags=["items"])
-app.include_router(sync.router, prefix="/api/sync", tags=["sync"])
+app.include_router(auth.router)
+app.include_router(connections.router)
+app.include_router(collections.router)
+app.include_router(items.router)
+app.include_router(sync.router)
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Share Links API",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
+@app.get("/", tags=["health"])
+def read_root():
+    return {"message": "Share Links API v1.0"}
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "healthy"}

@@ -1,11 +1,12 @@
 from pydantic import BaseModel, EmailStr
-from uuid import UUID
+from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
 class UserCreate(BaseModel):
-    username: str
     email: EmailStr
     password: str
+    full_name: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -13,9 +14,9 @@ class UserLogin(BaseModel):
 
 class UserResponse(BaseModel):
     id: UUID
-    username: str
     email: str
-    avatar_url: str | None
+    full_name: Optional[str]
+    avatar_url: Optional[str]
     created_at: datetime
     updated_at: datetime
     
@@ -24,7 +25,5 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    email: str | None = None
+    token_type: str = "bearer"
+    user: UserResponse

@@ -1,39 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import timedelta
 from app.database import get_db
 from app.models import User
-from app.schemas import UserCreate, UserLogin, UserResponse, Token
-from app.utils.security import hash_password, verify_password, create_access_token
-from app.config import get_settings
+from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
+from app.utils.security import hash_password, create_access_token, verify_password
+from app.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-settings = get_settings()
 
 @router.post("/register", response_model=UserResponse)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """Registrar nuevo usuario"""
-    
-    # Verificar que el email no exista
-    existing_email = db.query(User).filter(User.email == user_data.email).first()
-    if existing_email:
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email ya registrado"
+            detail="Email already registered"
         )
     
-    # Verificar que el username no exista
-    existing_username = db.query(User).filter(User.username == user_data.username).first()
-    if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username ya existe"
-        )
-    
-    # Crear usuario
     new_user = User(
-        username=user_data.username,
         email=user_data.email,
+        username=user_data.email, # Temporary fix: use email as username
+        full_name=user_data.full_name,
         password_hash=hash_password(user_data.password)
     )
     
@@ -44,23 +32,24 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.post("/login", response_model=Token)
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    """Login de usuario"""
+def login(credentials: UserLogin, db: Session = Depends(get_db)):
+    """Login y obtener token"""
+    user = db.query(User).filter(User.email == credentials.email).first()
     
-    user = db.query(User).filter(User.email == user_data.email).first()
-    
-    if not user or not verify_password(user_data.password, user.password_hash):
+    if not user or not verify_password(credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email o password incorrecto"
+            detail="Invalid credentials"
         )
     
-    access_token_expires = timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-    access_token = create_access_token(
-        data={"sub": user.email},
-        expires_delta=access_token_expires
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+    token = create_access_token(user.email)
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    """Obtener datos del usuario actual"""
+    return current_user

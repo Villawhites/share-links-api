@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, func, CheckConstraint, UniqueConstraint
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, func, CheckConstraint, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from app.database import Base
 import uuid
 
@@ -12,6 +13,18 @@ class Connection(Base):
     status = Column(String(50), default="pending")  # pending, accepted, blocked
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relaciones
+    user_1 = relationship(
+        "User",
+        back_populates="connections_initiated",
+        foreign_keys=[user_id_1]
+    )
+    user_2 = relationship(
+        "User",
+        back_populates="connections_received",
+        foreign_keys=[user_id_2]
+    )
     
     __table_args__ = (
         CheckConstraint("user_id_1 < user_id_2", name="different_users"),

@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
-    
+    DEBUG_SQL: bool = False
+
     class Config:
         env_file = ".env"
         case_sensitive = True
